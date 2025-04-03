@@ -1,0 +1,51 @@
+import re
+from collections import Counter
+import math
+import nltk
+from nltk.tokenize import word_tokenize
+
+# Download necessary NLTK data
+nltk.download('punkt')  
+nltk.download('punkt_tab')  
+
+# Load text from files
+def load_text(filename):
+    with open(filename, "r", encoding="utf-8") as file:
+        return file.read()
+
+# Preprocess text (remove punctuation, lowercase, etc.)
+def preprocess_text(text):
+    text = text.lower()  
+    text = re.sub(r'[^a-zA-Z\s]', '', text)  # Remove punctuation and numbers
+    return text
+
+# Calculate entropy
+def calculate_entropy(text):
+    words = word_tokenize(preprocess_text(text)) 
+    total_words = len(words)  
+    word_counts = Counter(words)  
+    
+    
+    entropy = -sum((count / total_words) * math.log2(count / total_words) for count in word_counts.values())
+    return entropy
+
+# Ensure texts are of equal length (optional, but useful for comparison)
+def match_text_length(text1, text2):
+    words1, words2 = text1.split(), text2.split()
+    min_length = min(len(words1), len(words2))
+    return " ".join(words1[:min_length]), " ".join(words2[:min_length])
+
+
+latin_text = load_text("./tom_rocks_nlp/text_files/All Latin Texts.txt")  
+english_text = load_text("./tom_rocks_nlp/text_files/All English Texts.txt")  
+
+
+latin_text, english_text = match_text_length(latin_text, english_text)
+
+# Compute entropy for both texts
+latin_entropy = calculate_entropy(latin_text)
+english_entropy = calculate_entropy(english_text)
+
+# Print the entropy values for both Latin and English texts
+print(f"Latin Entropy: {latin_entropy}")
+print(f"English Entropy: {english_entropy}")
