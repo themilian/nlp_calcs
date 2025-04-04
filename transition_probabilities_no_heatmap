@@ -1,0 +1,91 @@
+import re
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from collections import Counter
+from tkinter import Tk, filedialog
+
+# prompt file selection
+def get_text_file(prompt_message):
+    root = Tk()
+    root.withdraw()  # Hide the main Tkinter window
+    file_path = filedialog.askopenfilename(title=prompt_message, filetypes=[("Text files", "*.txt")])
+    return file_path
+
+# load an clean text
+def load_and_preprocess_text(file_path):
+    with open(file_path, "r", encoding="utf-8") as f:
+        text = f.read().lower()  # Convert to lowercase
+
+    # remove punctuation and numbers
+    text = re.sub(r'[^a-zA-Z\s]', '', text)
+    
+    # tokenize words
+    words = text.split()
+    
+    return words
+
+# compute bigram transition probabilities (dictionary)
+def compute_transition_probabilities(words):
+    bigrams = [(words[i], words[i+1]) for i in range(len(words) - 1)]
+    bigram_counts = Counter(bigrams)
+    
+    # count occurrences of each first word
+    word_totals = Counter([pair[0] for pair in bigrams])
+    
+    # compute transition probabilities
+    transition_probs = {pair: count / word_totals[pair[0]] for pair, count in bigram_counts.items()}
+    
+    return transition_probs, word_totals
+
+# create transition matrix
+def create_transition_matrix(transition_probs, word_totals):
+    unique_words = list(word_totals.keys())  # Get vocabulary
+    word_to_index = {word: i for i, word in enumerate(unique_words)}
+    
+    # initialize matrix
+    matrix_size = len(unique_words)
+    transition_matrix = np.zeros((matrix_size, matrix_size))
+    
+    # fill matrix with transition probabilities
+    for (word1, word2), prob in transition_probs.items():
+        if word1 in word_to_index and word2 in word_to_index:
+            transition_matrix[word_to_index[word1], word_to_index[word2]] = prob
+    
+    # convert to DataFrame for better visualization
+    df_matrix = pd.DataFrame(transition_matrix, index=unique_words, columns=unique_words)
+    
+    return df_matrix
+
+
+# get file paths from user
+latin_file = get_text_file("Select your Latin text file")
+english_file = get_text_file("Select your English text file")
+
+# load and preprocess texts
+latin_words = load_and_preprocess_text(latin_file)
+english_words = load_and_preprocess_text(english_file)
+
+# compute transition probabilities for both
+latin_probs, latin_totals = compute_transition_probabilities(latin_words)
+english_probs, english_totals = compute_transition_probabilities(english_words)
+
+# Create transition matrices
+latin_matrix = create_transition_matrix(latin_probs, latin_totals)
+english_matrix = create_transition_matrix(english_probs, english_totals)
+
+# print 10 bigram transition probabilities
+# sort bigrams by highest probability
+sorted_latin_bigrams = sorted(latin_probs.items(), key=lambda x: x[1], reverse=True)
+sorted_english_bigrams = sorted(english_probs.items(), key=lambda x: x[1], reverse=True)
+
+# print the top 10 most probable Latin bigrams
+print("\nTop 10 Most Probable Latin Bigrams:")
+for pair, prob in sorted_latin_bigrams[:10]:
+    print(f"P({pair[1]} | {pair[0]}) = {prob:.4f}")
+
+# print the top 10 most probable English bigrams
+print("\nTop 10 Most Probable English Bigrams:")
+for pair, prob in sorted_english_bigrams[:10]:
+    print(f"P({pair[1]} | {pair[0]}) = {prob:.4f}")
+
